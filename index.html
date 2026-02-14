@@ -16,7 +16,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Custom Font -->
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 
     <style>
         body {
@@ -69,36 +69,42 @@
 <body class="antialiased selection:bg-brand-gold selection:text-white">
     <div id="root"></div>
 
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, addDoc, deleteDoc, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'konaseema-media';
+
+        window.fbUtils = { auth, db, collection, doc, setDoc, addDoc, deleteDoc, onSnapshot, query, signInAnonymously, signInWithCustomToken, onAuthStateChanged, appId };
+    </script>
+
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useMemo } = React;
 
         // --- Icons ---
         const Icon = ({ size = 24, className = "", children }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>
         );
-        const ShoppingCart = (props) => <Icon {...props}><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></Icon>;
         const Menu = (props) => <Icon {...props}><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></Icon>;
         const X = (props) => <Icon {...props}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></Icon>;
         const Phone = (props) => <Icon {...props}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.12 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></Icon>;
         const Award = (props) => <Icon {...props}><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></Icon>;
-        const ArrowRight = (props) => <Icon {...props}><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></Icon>;
-        const Search = (props) => <Icon {...props}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></Icon>;
         const Plus = (props) => <Icon {...props}><path d="M12 5v14"/><path d="M5 12h14"/></Icon>;
         const Trash = (props) => <Icon {...props}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></Icon>;
         const Upload = (props) => <Icon {...props}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></Icon>;
         const Lock = (props) => <Icon {...props}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></Icon>;
+        const Search = (props) => <Icon {...props}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></Icon>;
 
-        // --- Data ---
-        // Default Inventory
-        const INITIAL_ITEMS = [
-            { id: 1, name: "Royal Dega (Eagle)", category: "rooster", breed: "Dega", age: "18 Months", weight: "4.5 KG", price: 25000, image: "rooster_dega_1.jpg", description: "Purebred Dega.", featured: true },
-            { id: 2, name: "Bhimavaram Kaki", category: "rooster", breed: "Kaki", age: "14 Months", weight: "3.8 KG", price: 18000, image: "rooster_kaki_1.jpg", description: "Coal black plumage.", featured: true },
-            { id: 3, name: "Pearl White Sethwa", category: "rooster", breed: "Sethwa", age: "12 Months", weight: "4.0 KG", price: 22000, image: "rooster_sethwa_1.jpg", description: "Rare Sethwa breed.", featured: false },
-            { id: 4, name: "Parrot Beak (Pacha)", category: "rooster", breed: "Pacha", age: "20 Months", weight: "5.2 KG", price: 35000, image: "rooster_pacha_1.jpg", description: "Heavyweight champion.", featured: false },
-            { id: 101, name: "Premium Power Feed", category: "product", type: "Feed", price: 850, image: "product_feed.jpg", description: "High protein blend (5kg).", featured: false },
-            { id: 102, name: "Calcium & Multivitamin", category: "product", type: "Medicine", price: 450, image: "product_calcium.jpg", description: "Bone strength supplement.", featured: true },
-            { id: 103, name: "Training Gloves (Pair)", category: "product", type: "Accessory", price: 1200, image: "product_gloves.jpg", description: "Protective gear.", featured: false }
-        ];
+        // --- Constants ---
+        const ADMIN_ID = "8106107780";
+        const ADMIN_PASS = "12345678";
+        const OWNER_WA = "918106107780";
 
         // --- Components ---
 
@@ -115,7 +121,7 @@
                 <nav className={`fixed w-full z-50 transition-all duration-500 border-b ${isScrolled || currentView !== 'home' ? 'bg-white/95 backdrop-blur-md border-gray-200 py-3 shadow-sm' : 'bg-transparent border-transparent py-6'}`}>
                     <div className="container mx-auto px-6 flex justify-between items-center">
                         <div className="flex items-center gap-3 cursor-pointer" onClick={() => onViewChange('home')}>
-                             <div className={`text-2xl font-serif font-bold tracking-tight transition-colors ${isScrolled || currentView !== 'home' ? 'text-brand-dark' : 'text-white'}`}>
+                             <div className={`text-xl md:text-2xl font-serif font-bold tracking-tight transition-colors ${isScrolled || currentView !== 'home' ? 'text-brand-dark' : 'text-white'}`}>
                                 Konaseema<span className="text-brand-gold italic">Media</span>
                             </div>
                         </div>
@@ -151,13 +157,13 @@
                     <div className="absolute inset-0 z-0">
                          <div className="flex h-full animate-marquee w-max"> 
                              {[...BG_IMAGES, ...BG_IMAGES].map((src, i) => (
-                                <div key={i} className="relative h-full w-auto" style={{minWidth: '50vw', minHeight: '100vh', backgroundColor: '#333', borderRight: '1px solid #444'}}>
+                                <div key={i} className="relative h-full flex-shrink-0 w-screen md:w-[40vw]" style={{backgroundColor: '#111', borderRight: '1px solid #333'}}>
                                     <img 
                                         src={src} 
-                                        className="h-full w-full object-cover opacity-60 blur-[3px]" 
+                                        className="h-full w-full object-cover opacity-60 blur-[1.5px]" 
                                         onError={(e) => {
                                             e.target.style.display = 'none';
-                                            e.target.parentNode.classList.add('flex', 'items-center', 'justify-center', 'text-white/20', 'text-xl', 'font-mono');
+                                            e.target.parentNode.classList.add('flex', 'items-center', 'justify-center', 'text-white/10', 'text-xs', 'font-mono', 'p-4', 'text-center');
                                             e.target.parentNode.innerText = `${src}`;
                                         }}
                                     />
@@ -168,11 +174,11 @@
                     </div>
 
                     <div className="relative z-10 text-center px-4 max-w-5xl mx-auto animate-fade-in-up">
-                        <p className="text-brand-gold uppercase tracking-[0.3em] text-sm font-semibold mb-6">Curated by R. Pavan Kumar</p>
-                        <h1 className="text-6xl md:text-8xl font-serif font-medium text-white mb-8 leading-tight">
+                        <p className="text-brand-gold uppercase tracking-[0.3em] text-xs md:text-sm font-semibold mb-6">Curated by R. Pavan Kumar</p>
+                        <h1 className="text-5xl md:text-8xl font-serif font-medium text-white mb-8 leading-tight">
                             The Spirit of <br/> <span className="italic">Godavari</span>
                         </h1>
-                        <p className="text-gray-200 text-lg md:text-xl mb-12 max-w-2xl mx-auto font-light leading-relaxed">
+                        <p className="text-gray-200 text-base md:text-xl mb-12 max-w-2xl mx-auto font-light leading-relaxed">
                             An exclusive collection of championship roosters and premium supplies.
                         </p>
                         <div className="flex flex-col md:flex-row gap-6 justify-center items-center">
@@ -204,14 +210,14 @@
                                         e.target.parentNode.innerText = "owner_pavan_kumar.jpg";
                                     }}
                                 />
-                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6 text-white">
+                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-brand-dark/80 to-transparent p-6 text-white">
                                     <h3 className="font-serif text-2xl">R. Pavan Kumar</h3>
                                     <p className="text-brand-gold text-sm uppercase tracking-widest mt-1">Founder & Curator</p>
                                 </div>
                             </div>
                         </div>
                         <div className="w-full md:w-7/12">
-                            <h2 className="text-4xl md:text-5xl font-serif text-brand-dark mb-8">A Legacy of Excellence</h2>
+                            <h2 className="text-4xl md:text-5xl font-serif text-brand-dark mb-8 leading-tight">A Legacy of Excellence</h2>
                             <p className="text-gray-600 leading-loose text-lg font-light mb-6">
                                 "In Konaseema, raising roosters isn't just a hobby; it's a way of life that demands patience, respect, and deep knowledge of lineage."
                             </p>
@@ -233,6 +239,7 @@
                             alt={item.name} 
                             className="w-full h-full object-cover transition duration-700 group-hover:scale-110"
                             onError={(e) => {
+                                if (item.image.startsWith('data:')) return;
                                 e.target.style.display = 'none';
                                 e.target.parentNode.classList.add('flex', 'items-center', 'justify-center', 'bg-gray-200', 'p-4', 'text-center', 'text-xs', 'text-red-500', 'font-mono');
                                 e.target.parentNode.innerText = `Missing: ${item.image}`;
@@ -256,7 +263,7 @@
                         <div className="flex justify-between items-center border-t border-gray-100 pt-4">
                             <span className="font-medium text-brand-gold text-lg">₹{item.price.toLocaleString()}</span>
                             <button onClick={() => onEnquire(item)} className="bg-brand-dark text-white px-4 py-2 text-xs uppercase tracking-widest hover:bg-brand-green transition flex items-center gap-2">
-                                <Phone size={14} /> Enquire Now
+                                <Phone size={14} /> Enquire
                             </button>
                         </div>
                     </div>
@@ -271,14 +278,14 @@
 
             const handleSend = (e) => {
                 e.preventDefault();
-                const text = `Hello Pavan,\n\nI am interested in buying:\n*${item.name}*\nPrice: ₹${item.price}\nType: ${item.category}\n\n*My Details:*\nName: ${details.name}\nLocation: ${details.place}\n\nImage Reference: ${item.image}`;
-                const url = `https://wa.me/918106107780?text=${encodeURIComponent(text)}`;
+                const text = `Hello Pavan,\n\nI am interested in buying:\n*${item.name}*\nPrice: ₹${item.price}\nType: ${item.category}\n\n*My Details:*\nName: ${details.name}\nLocation: ${details.place}\n\nRef: ${item.image.length > 100 ? 'Custom Uploaded Image' : item.image}`;
+                const url = `https://wa.me/${OWNER_WA}?text=${encodeURIComponent(text)}`;
                 window.open(url, '_blank');
                 onClose();
             };
 
             return (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-in-up">
                         <div className="bg-brand-dark p-6 flex justify-between items-center text-white">
                             <h3 className="font-serif text-xl">Product Enquiry</h3>
@@ -304,7 +311,7 @@
                                         value={details.place} onChange={e => setDetails({...details, place: e.target.value})} placeholder="e.g. Rajahmundry" />
                                 </div>
                                 <button type="submit" className="w-full bg-brand-green text-white py-4 rounded-lg font-medium hover:bg-green-800 transition flex items-center justify-center gap-2">
-                                    <Phone size={18} /> Send to Pavan on WhatsApp
+                                    <Phone size={18} /> Send WhatsApp Enquiry
                                 </button>
                             </form>
                         </div>
@@ -319,7 +326,7 @@
 
             const handleLogin = (e) => {
                 e.preventDefault();
-                if (creds.id === '8106107780' && creds.password === '12345678') {
+                if (creds.id === ADMIN_ID && creds.password === ADMIN_PASS) {
                     onLoginSuccess();
                 } else {
                     setError('Invalid ID or Password');
@@ -334,7 +341,7 @@
                                 <Lock size={32} />
                             </div>
                             <h2 className="text-3xl font-serif text-brand-dark">Owner Login</h2>
-                            <p className="text-gray-500 mt-2">Access Dashboard</p>
+                            <p className="text-gray-500 mt-2 tracking-wide uppercase text-xs">Access Cloud Dashboard</p>
                         </div>
                         <form onSubmit={handleLogin} className="space-y-6">
                             <div>
@@ -348,59 +355,53 @@
                                     value={creds.password} onChange={e => setCreds({...creds, password: e.target.value})} />
                             </div>
                             {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-                            <button type="submit" className="w-full bg-brand-dark text-white py-3 rounded-lg hover:bg-brand-gold transition">Login</button>
-                            <button type="button" onClick={onBack} className="w-full text-gray-400 text-sm mt-4 hover:text-gray-600">Cancel</button>
+                            <button type="submit" className="w-full bg-brand-dark text-white py-3 rounded-lg hover:bg-brand-gold transition shadow-md">Login</button>
+                            <button type="button" onClick={onBack} className="w-full text-gray-400 text-sm mt-4 hover:text-gray-600 underline">Cancel</button>
                         </form>
                     </div>
                 </div>
             );
         };
 
-        const AdminView = ({ products, setProducts, onBack }) => {
-            const [newItem, setNewItem] = useState({
-                name: '', category: 'rooster', price: '', image: '', description: ''
-            });
+        const AdminView = ({ products, onBack }) => {
+            const [newItem, setNewItem] = useState({ name: '', category: 'rooster', price: '', image: '', description: '' });
+            const { db, collection, addDoc, deleteDoc, doc, appId } = window.fbUtils;
 
-            // Generate a pool of 200 image filenames (img_1.jpg to img_200.jpg)
-            const IMG_POOL = Array.from({length: 200}, (_, i) => `img_${i+1}.jpg`);
+            // Pool of 200 filenames
+            const IMG_POOL = useMemo(() => Array.from({length: 200}, (_, i) => `img_${i+1}.jpg`), []);
 
             const handleImageUpload = (e) => {
                 const file = e.target.files[0];
                 if (file) {
                     const reader = new FileReader();
-                    reader.onloadend = () => {
-                        setNewItem({ ...newItem, image: reader.result }); // Set Base64 string
-                    };
+                    reader.onloadend = () => setNewItem({ ...newItem, image: reader.result });
                     reader.readAsDataURL(file);
                 }
             };
 
-            const handleSubmit = (e) => {
+            const handleSubmit = async (e) => {
                 e.preventDefault();
-                
                 let finalImage = newItem.image;
-
-                // Fallback logic if no image uploaded
+                
+                // Auto-assign filename if no image or filename provided
                 if (!finalImage || finalImage.trim() === '') {
                     const usedImages = new Set(products.map(p => p.image));
-                    // Find the first image in the pool that isn't already used
                     finalImage = IMG_POOL.find(img => !usedImages.has(img)) || "img_1.jpg";
                 }
 
-                const product = {
-                    ...newItem,
-                    id: Date.now(),
-                    price: Number(newItem.price),
-                    image: finalImage
-                };
-                setProducts([...products, product]);
-                setNewItem({ name: '', category: 'rooster', price: '', image: '', description: '' });
-                alert(`Item added successfully!`);
+                const data = { ...newItem, price: Number(newItem.price), image: finalImage, createdAt: Date.now() };
+                try {
+                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'inventory'), data);
+                    setNewItem({ name: '', category: 'rooster', price: '', image: '', description: '' });
+                    alert(`Item synced to cloud successfully!`);
+                } catch (err) {
+                    alert("Sync error. Please check internet connection.");
+                }
             };
 
-            const handleDelete = (id) => {
-                if(confirm("Delete this item?")) {
-                    setProducts(products.filter(p => p.id !== id));
+            const handleDelete = async (id) => {
+                if(confirm("Delete this item from cloud?")) {
+                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'inventory', id));
                 }
             };
 
@@ -408,11 +409,10 @@
                 <div className="min-h-screen bg-gray-50 pt-24 pb-12 px-4">
                     <div className="max-w-4xl mx-auto">
                         <div className="flex justify-between items-center mb-8">
-                            <h1 className="text-3xl font-serif text-brand-dark">Owner Dashboard</h1>
+                            <h1 className="text-3xl font-serif text-brand-dark">Cloud Dashboard</h1>
                             <button onClick={onBack} className="text-sm underline text-gray-600">Back to Store</button>
                         </div>
 
-                        {/* Add New Product Form */}
                         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-10">
                             <h2 className="text-lg font-semibold mb-4 text-brand-dark flex items-center gap-2"><Plus size={18}/> Add New Inventory</h2>
                             <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -431,15 +431,12 @@
                                             <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
                                         </label>
                                     </div>
-                                    {newItem.image && newItem.image.startsWith('data:') && (
-                                        <p className="text-xs text-green-600 mt-1">✓ Photo Selected</p>
-                                    )}
+                                    {newItem.image && newItem.image.startsWith('data:') && <p className="text-xs text-green-600 mt-1">✓ Photo Selected</p>}
                                     <div className="mt-2">
-                                        <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">OR Enter Filename:</p>
                                         <input type="text" className="w-full border border-gray-300 p-2 rounded text-sm focus:border-brand-gold outline-none" 
                                             value={newItem.image && !newItem.image.startsWith('data:') ? newItem.image : ''} 
                                             onChange={e => setNewItem({...newItem, image: e.target.value})} 
-                                            placeholder="e.g. img_1.jpg (Auto-assigned if empty)" />
+                                            placeholder="OR Enter filename (img_1.jpg)" />
                                     </div>
                                 </div>
 
@@ -462,27 +459,26 @@
                                         value={newItem.description} onChange={e => setNewItem({...newItem, description: e.target.value})} placeholder="Details about breed, weight, age, etc."></textarea>
                                 </div>
                                 <div className="md:col-span-2">
-                                    <button type="submit" className="w-full bg-brand-dark text-white py-3 rounded-lg hover:bg-brand-green transition font-medium">Add Item to Store</button>
+                                    <button type="submit" className="w-full bg-brand-dark text-white py-3 rounded-lg hover:bg-brand-green transition font-medium">Sync to Cloud</button>
                                 </div>
                             </form>
                         </div>
 
-                        {/* Inventory List */}
                         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                            <div className="p-6 border-b border-gray-100">
-                                <h2 className="text-lg font-semibold text-brand-dark">Current Inventory</h2>
-                            </div>
+                            <div className="p-6 border-b border-gray-100"><h2 className="text-lg font-semibold text-brand-dark">Cloud Inventory</h2></div>
                             <div className="divide-y divide-gray-100">
                                 {products.map(item => (
                                     <div key={item.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
                                         <div className="flex items-center gap-4">
-                                            <img src={item.image} className="w-12 h-12 object-cover rounded bg-gray-200" onError={(e) => e.target.style.opacity=0.5} />
+                                            <div className="w-12 h-12 bg-gray-200 rounded overflow-hidden">
+                                                <img src={item.image} className="w-full h-full object-cover" />
+                                            </div>
                                             <div>
                                                 <h4 className="font-medium text-gray-900">{item.name}</h4>
                                                 <p className="text-xs text-gray-500 uppercase">{item.category} • ₹{item.price.toLocaleString()}</p>
                                             </div>
                                         </div>
-                                        <button onClick={() => handleDelete(item.id)} className="text-red-400 hover:text-red-600 p-2"><Trash size={18}/></button>
+                                        <button onClick={() => handleDelete(item.id)} className="text-red-400 hover:text-red-600 p-2 transition"><Trash size={18}/></button>
                                     </div>
                                 ))}
                             </div>
@@ -493,31 +489,54 @@
         };
 
         const Main = () => {
-            // Load state from local storage on init
-            const [products, setProducts] = useState(() => {
-                const saved = localStorage.getItem('konaseema_inventory');
-                return saved ? JSON.parse(saved) : INITIAL_ITEMS;
-            });
-            
+            const [products, setProducts] = useState([]);
             const [searchTerm, setSearchTerm] = useState("");
-            const [view, setView] = useState('home'); // 'home', 'login', 'admin'
+            const [view, setView] = useState('home');
             const [enquiryItem, setEnquiryItem] = useState(null);
+            const [user, setUser] = useState(null);
 
-            // Save state to local storage whenever products change
+            // Move INITIAL_ITEMS inside to ensure scope and avoid ReferenceErrors
+            const INITIAL_ITEMS = useMemo(() => [
+                { id: '1', name: "Royal Dega (Eagle)", category: "rooster", breed: "Dega", age: "18 Months", weight: "4.5 KG", price: 25000, image: "rooster_dega_1.jpg", description: "Purebred Dega.", featured: true },
+                { id: '2', name: "Bhimavaram Kaki", category: "rooster", breed: "Kaki", age: "14 Months", weight: "3.8 KG", price: 18000, image: "rooster_kaki_1.jpg", description: "Coal black plumage.", featured: true },
+                { id: '3', name: "Pearl White Sethwa", category: "rooster", breed: "Sethwa", age: "12 Months", weight: "4.0 KG", price: 22000, image: "rooster_sethwa_1.jpg", description: "Rare Sethwa breed.", featured: false },
+                { id: '4', name: "Parrot Beak (Pacha)", category: "rooster", breed: "Pacha", age: "20 Months", weight: "5.2 KG", price: 35000, image: "rooster_pacha_1.jpg", description: "Heavyweight champion.", featured: false },
+                { id: '101', name: "Premium Power Feed", category: "product", type: "Feed", price: 850, image: "product_feed.jpg", description: "High protein blend (5kg).", featured: false },
+                { id: '102', name: "Calcium & Multivitamin", category: "product", type: "Medicine", price: 450, image: "product_calcium.jpg", description: "Bone strength supplement.", featured: true },
+                { id: '103', name: "Training Gloves (Pair)", category: "product", type: "Accessory", price: 1200, image: "product_gloves.jpg", description: "Protective gear.", featured: false }
+            ], []);
+
             useEffect(() => {
-                localStorage.setItem('konaseema_inventory', JSON.stringify(products));
-            }, [products]);
+                const initAuth = async () => {
+                    const { auth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } = window.fbUtils;
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                    onAuthStateChanged(auth, setUser);
+                };
+                initAuth();
+            }, []);
+
+            useEffect(() => {
+                if (!user) return;
+                const { db, collection, query, onSnapshot, appId } = window.fbUtils;
+                const unsub = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'inventory'), 
+                    (snapshot) => {
+                        const items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+                        setProducts(items.length > 0 ? items : INITIAL_ITEMS);
+                    },
+                    (err) => console.error("Snapshot error:", err)
+                );
+                return () => unsub();
+            }, [user, INITIAL_ITEMS]);
 
             const roosterItems = products.filter(i => i.category === 'rooster' && i.name.toLowerCase().includes(searchTerm.toLowerCase()));
             const productItems = products.filter(i => i.category === 'product' && i.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
-            if (view === 'login') {
-                return <LoginView onLoginSuccess={() => setView('admin')} onBack={() => setView('home')} />;
-            }
-
-            if (view === 'admin') {
-                return <AdminView products={products} setProducts={setProducts} onBack={() => setView('home')} />;
-            }
+            if (view === 'login') return <LoginView onLoginSuccess={() => setView('admin')} onBack={() => setView('home')} />;
+            if (view === 'admin') return <AdminView products={products} onBack={() => setView('home')} />;
 
             return (
                 <div className="min-h-screen bg-gray-50">
@@ -536,18 +555,13 @@
                                 </div>
                                 <div className="relative w-full md:w-80">
                                     <Search className="absolute left-0 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                                    <input 
-                                        type="text" 
-                                        placeholder="Search collection..." 
-                                        className="w-full pl-8 pr-4 py-2 border-b border-gray-300 focus:border-brand-gold outline-none bg-transparent placeholder-gray-400"
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                    />
+                                    <input type="text" placeholder="Search collection..." className="w-full pl-8 pr-4 py-2 border-b border-gray-300 focus:border-brand-gold outline-none bg-transparent"
+                                        value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                                 </div>
                             </div>
-
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12">
                                 {roosterItems.map(item => <ProductCard key={item.id} item={item} onEnquire={setEnquiryItem} />)}
+                                {roosterItems.length === 0 && <p className="text-gray-400 col-span-full py-10">No roosters found.</p>}
                             </div>
                         </div>
                     </div>
@@ -560,6 +574,7 @@
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                                 {productItems.map(item => <ProductCard key={item.id} item={item} onEnquire={setEnquiryItem} />)}
+                                {productItems.length === 0 && <p className="text-gray-400 col-span-full py-10 text-center">No supplies found.</p>}
                             </div>
                         </div>
                     </div>
@@ -567,23 +582,19 @@
                     <footer className="bg-brand-dark text-white py-20 border-t border-white/10">
                         <div className="container mx-auto px-6 text-center">
                             <div 
-                                className="text-3xl font-serif font-bold mb-8 cursor-default" 
+                                className="text-3xl font-serif font-bold mb-8 cursor-default inline-block" 
                                 onDoubleClick={() => setView('login')} 
                                 title="Double click for Owner Access"
                             >
                                 Konaseema<span className="text-brand-gold italic">Media</span>
                             </div>
-                            <p className="text-gray-400 max-w-lg mx-auto mb-10 leading-relaxed font-light">
-                                Highlighting the pride of Godavari. Dedicated to R. Pavan Kumar's vision of excellence in poultry breeding.
-                            </p>
+                            <p className="text-gray-400 max-w-lg mx-auto mb-10 leading-relaxed font-light">Highlighting the pride of Godavari. Dedicated to R. Pavan Kumar's vision of excellence in poultry breeding.</p>
                             <div className="flex justify-center gap-8 text-sm uppercase tracking-widest text-gray-500 mb-10">
                                 <a href="#" className="hover:text-white transition">Home</a>
                                 <a href="#owner" className="hover:text-white transition">Owner</a>
                                 <a href="#roosters" className="hover:text-white transition">Roosters</a>
                             </div>
-                            <p className="text-xs text-gray-600 uppercase tracking-widest">
-                                &copy; 2023 Konaseema Media. All rights reserved.
-                            </p>
+                            <p className="text-xs text-gray-600 uppercase tracking-widest">&copy; 2023 Konaseema Media. All rights reserved.</p>
                         </div>
                     </footer>
                 </div>
